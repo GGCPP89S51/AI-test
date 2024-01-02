@@ -25,14 +25,33 @@ class CustomDataset(Dataset):
         class_name = self.class_names[label]
         return img, class_name  # 返回图像和类别名称
 
-class SimpleModel(nn.Module):
-    def __init__(self, num_classes):
-        super(SimpleModel, self).__init__()
-        self.fc = nn.Linear(3 * 200 * 300, num_classes)
+class SimpleCNN(nn.Module):
+    def __init__(self, num_classes=10):
+        super(SimpleCNN, self).__init__()
+        # 定义卷积层和池化层
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
+        
+        # 定义全连接层
+        self.fc1 = nn.Linear(32 * 64 * 64, 512)
+        self.fc2 = nn.Linear(512, num_classes)
 
     def forward(self, x):
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        # 卷积层1 + 激活函数 + 池化层
+        x = self.pool(self.relu(self.conv1(x)))
+        # 卷积层2 + 激活函数 + 池化层
+        x = self.pool(self.relu(self.conv2(x)))
+        
+        # 展平
+        x = x.view(7680000)
+        # 全连接层1 + 激活函数
+        x = self.relu(self.fc1(x))
+        # 全连接层2 (输出层)
+        x = self.fc2(x)
+        
         return x
 
 # 定义 collate_fn 函数
@@ -56,10 +75,10 @@ data_loader = DataLoader(dataset=custom_dataset, batch_size=64, shuffle=True, co
 num_classes = len(custom_dataset.class_names)
 
 # 初始化模型并将模型移到 GPU 上
-model = SimpleModel(num_classes=num_classes).to(device)
+model = SimpleCNN(num_classes=num_classes).to(device)
 
 # 定义训练的总轮数
-num_epochs = 100
+num_epochs = 10
 
 # 检查是否存在已经训练好的模型文件
 model_save_path = "simple_model.pth"
