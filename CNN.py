@@ -107,7 +107,7 @@ else:
         plt.xlabel('Batch')
         plt.ylabel('Loss')
         plt.legend()
-        
+        plt.show()
 
         # 显示预测结果
         for i in range(4):
@@ -117,7 +117,7 @@ else:
             plt.title(f"Actual Label: {sample_labels[i]}\nPredicted Label: {predicted_label}")
             plt.axis('off')
 
-        
+        plt.show()
 
     # 保存训练好的模型
     torch.save(model.state_dict(), model_save_path)
