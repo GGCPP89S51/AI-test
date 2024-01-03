@@ -36,7 +36,7 @@ class SimpleCNN(nn.Module):
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
         
         # 定义全连接层
-        self.fc1 = nn.Linear(32 * 64 * 64, 512)
+        self.fc1 = nn.Linear(32 * 10 * 10, 512)
         self.fc2 = nn.Linear(512, num_classes)
 
     def forward(self, x):
@@ -46,7 +46,7 @@ class SimpleCNN(nn.Module):
         x = self.pool(self.relu(self.conv2(x)))
         
         # 展平
-        x = x.view(7680000)
+        x = x.view(-1,32 * 10 * 10)
         # 全连接层1 + 激活函数
         x = self.relu(self.fc1(x))
         # 全连接层2 (输出层)
@@ -60,7 +60,7 @@ def collate_fn(batch):
     images, class_names = zip(*batch)
 
     # 将图像调整为相同的大小，并传递 antialias 参数
-    resized_images = [Resize((300, 200), antialias=True)(image) for image in images]
+    resized_images = [Resize((40, 40), antialias=True)(image) for image in images]
 
     # 将调整后的图像和类别名称返回
     return torch.stack(resized_images), class_names
@@ -113,7 +113,7 @@ else:
             train_losses.append(loss.item())
 
         # 随机选择四张图像并显示预测结果
-        sample_indices = random.sample(range(len(custom_dataset)), 4)
+        sample_indices = random.sample(range(len(custom_dataset)), 10)
         sample_images = [custom_dataset[i][0] for i in sample_indices]
         sample_labels = [custom_dataset[i][1] for i in sample_indices]
 
@@ -129,8 +129,8 @@ else:
         plt.show()
 
         # 显示预测结果
-        for i in range(4):
-            plt.subplot(2, 2, i+1)
+        for i in range(10):
+            plt.subplot(5, 2, i+1)
             plt.imshow(sample_images[i].permute(1, 2, 0).cpu().numpy())
             predicted_label = custom_dataset.class_names[predictions[i].argmax().item()]
             plt.title(f"Actual Label: {sample_labels[i]}\nPredicted Label: {predicted_label}")
