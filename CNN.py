@@ -78,7 +78,7 @@ num_classes = len(custom_dataset.class_names)
 model = SimpleCNN(num_classes=num_classes).to(device)
 
 # 定义训练的总轮数
-num_epochs = 10
+num_epochs = 100
 
 # 检查是否存在已经训练好的模型文件
 model_save_path = "simple_model.pth"
@@ -138,6 +138,22 @@ else:
 
         plt.show()
 
+sample_indices = random.sample(range(len(custom_dataset)), 10)
+sample_images = [custom_dataset[i][0] for i in sample_indices]
+sample_labels = [custom_dataset[i][1] for i in sample_indices]
+
+# 将图像移到 GPU 上，并进行预测
+sample_images = torch.stack([Resize((300, 200), antialias=True)(image) for image in sample_images]).to(device)
+predictions = model(sample_images)
+        # 显示预测结果
+for i in range(10):
+    plt.subplot(5, 2, i+1)
+    plt.imshow(sample_images[i].permute(1, 2, 0).cpu().numpy())
+    predicted_label = custom_dataset.class_names[predictions[i].argmax().item()]
+    plt.title(f"Actual Label: {sample_labels[i]}\nPredicted Label: {predicted_label}")
+    plt.axis('off')
+
+    plt.show()
     # 保存训练好的模型
     torch.save(model.state_dict(), model_save_path)
     print(f"Model saved at: {model_save_path}")
