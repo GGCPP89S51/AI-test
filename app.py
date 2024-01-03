@@ -79,15 +79,14 @@ def do_prediction(fileIOObj):
 
 PATH = './simple_model.pth'
 
-classes = ('cane', 'cavallo', 'elefante', 'farfalla',
-           'gatto', 'mucca', 'pecora', 'ragno', 'scoiattolo',)
+classes = ('boosy', 'Butterfly', 'cat', 'chicken','dog', 'elefants', 'horse', 'sheep', 'spider','squirrel')
 
 uploaded_file = st.file_uploader("上传图像", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
     st.image(uploaded_file, caption='上传的图像', use_column_width=True)
     st.write("")
-    st.write("正在分类...")
+    st.write("正在分類...")
 
     net = SimpleCNN()
     net.load_state_dict(torch.load(PATH))
