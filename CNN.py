@@ -25,18 +25,20 @@ class CustomDataset(Dataset):
         class_name = self.class_names[label]
         return img, class_name  # 返回图像和类别名称
 
+import torch.nn as nn
+
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes=10):
         super(SimpleCNN, self).__init__()
         # 定义卷积层和池化层
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2)
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2)
         
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
         
         # 定义全连接层
-        self.fc1 = nn.Linear(32 * 10 * 10, 512)
+        self.fc1 = nn.Linear(32 * 25 * 25, 512)  # 注意更新這裡的輸入維度
         self.fc2 = nn.Linear(512, num_classes)
 
     def forward(self, x):
@@ -44,9 +46,11 @@ class SimpleCNN(nn.Module):
         x = self.pool(self.relu(self.conv1(x)))
         # 卷积层2 + 激活函数 + 池化层
         x = self.pool(self.relu(self.conv2(x)))
+        # 新增的卷積層3 + 激活函数 + 池化层
+        
         
         # 展平
-        x = x.view(-1,32 * 10 * 10)
+        x = x.view(-1, 32 * 25 * 25)  # 注意更新這裡的輸入維度
         # 全连接层1 + 激活函数
         x = self.relu(self.fc1(x))
         # 全连接层2 (输出层)
@@ -54,13 +58,14 @@ class SimpleCNN(nn.Module):
         
         return x
 
+
 # 定义 collate_fn 函数
 def collate_fn(batch):
     # 从批次中提取图像和类别名称
     images, class_names = zip(*batch)
 
     # 将图像调整为相同的大小，并传递 antialias 参数
-    resized_images = [Resize((40, 40), antialias=True)(image) for image in images]
+    resized_images = [Resize((100, 100), antialias=True)(image) for image in images]
 
     # 将调整后的图像和类别名称返回
     return torch.stack(resized_images), class_names
@@ -78,7 +83,7 @@ num_classes = len(custom_dataset.class_names)
 model = SimpleCNN(num_classes=num_classes).to(device)
 
 # 定义训练的总轮数
-num_epochs = 100
+num_epochs = 10
 
 # 检查是否存在已经训练好的模型文件
 model_save_path = "simple_model.pth"
@@ -86,6 +91,21 @@ if os.path.exists(model_save_path):
     # 如果存在模型文件，加载模型参数
     model.load_state_dict(torch.load(model_save_path))
     print("Model loaded from existing file.")
+    sample_indices = random.sample(range(len(custom_dataset)), 10)
+    sample_images = [custom_dataset[i][0] for i in sample_indices]
+    sample_labels = [custom_dataset[i][1] for i in sample_indices]
+
+    # 将图像移到 GPU 上，并进行预测
+    sample_images = torch.stack([Resize((100, 100), antialias=True)(image) for image in sample_images]).to(device)
+    predictions = model(sample_images)
+        # 显示预测结果
+    for i in range(10):
+        plt.subplot(5, 2, i+1)
+        plt.imshow(sample_images[i].permute(1, 2, 0).cpu().numpy())
+        predicted_label = custom_dataset.class_names[predictions[i].argmax().item()]
+        plt.title(f"Actual Label: {sample_labels[i]}\nPredicted Label: {predicted_label}")
+        plt.axis('off')
+        plt.show()
 else:
     # 如果不存在模型文件，进行训练
     criterion = nn.CrossEntropyLoss()
@@ -118,7 +138,7 @@ else:
         sample_labels = [custom_dataset[i][1] for i in sample_indices]
 
         # 将图像移到 GPU 上，并进行预测
-        sample_images = torch.stack([Resize((300, 200), antialias=True)(image) for image in sample_images]).to(device)
+        sample_images = torch.stack([Resize((100, 100), antialias=True)(image) for image in sample_images]).to(device)
         predictions = model(sample_images)
 
         # 在 CPU 上绘制训练损失的图形
@@ -138,22 +158,7 @@ else:
 
         plt.show()
 
-sample_indices = random.sample(range(len(custom_dataset)), 10)
-sample_images = [custom_dataset[i][0] for i in sample_indices]
-sample_labels = [custom_dataset[i][1] for i in sample_indices]
 
-# 将图像移到 GPU 上，并进行预测
-sample_images = torch.stack([Resize((300, 200), antialias=True)(image) for image in sample_images]).to(device)
-predictions = model(sample_images)
-        # 显示预测结果
-for i in range(10):
-    plt.subplot(5, 2, i+1)
-    plt.imshow(sample_images[i].permute(1, 2, 0).cpu().numpy())
-    predicted_label = custom_dataset.class_names[predictions[i].argmax().item()]
-    plt.title(f"Actual Label: {sample_labels[i]}\nPredicted Label: {predicted_label}")
-    plt.axis('off')
-
-    plt.show()
     # 保存训练好的模型
     torch.save(model.state_dict(), model_save_path)
     print(f"Model saved at: {model_save_path}")
